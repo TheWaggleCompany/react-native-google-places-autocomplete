@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Dimensions,
   TouchableHighlight,
+  TouchableOpacity,
   Platform,
   ActivityIndicator,
   PixelRatio
@@ -22,6 +23,27 @@ const WINDOW = Dimensions.get('window');
 const defaultStyles = {
   container: {
     flex: 1,
+  },
+  close: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    fontSize: 16
+  },
+  errorStyles: {
+    position: 'absolute',
+    top: -85,
+    width: '100%',
+    height: 83,
+    backgroundColor: '#FFFFFF',
+    // padding: 5,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  errorMessage: {
+    color: 'red',
+    fontSize: 14
   },
   textInputContainer: {
     backgroundColor: '#C9C9CE',
@@ -87,6 +109,8 @@ export default class GooglePlacesAutocomplete extends Component {
     text: this.props.getDefaultValue(),
     dataSource: this.buildRowsFromResults([]),
     listViewDisplayed: this.props.listViewDisplayed === 'auto' ? false : this.props.listViewDisplayed,
+    error: false,
+    error_message: ''
   })
 
   setAddressText = address => this.setState({ text: address })
@@ -112,7 +136,7 @@ export default class GooglePlacesAutocomplete extends Component {
       isPredefinedPlace: true
     }));
 
-    return [...res, ...results].reverse();
+    return [...res, ...results];
   }
 
   componentWillMount() {
@@ -230,7 +254,7 @@ export default class GooglePlacesAutocomplete extends Component {
       const request = new XMLHttpRequest();
       this._requests.push(request);
       request.timeout = this.props.timeout;
-      request.ontimeout = this.props.onTimeout;
+      request.ontimeout = this.onTimeout;
       request.onreadystatechange = () => {
         if (request.readyState !== 4) return;
 
@@ -262,6 +286,7 @@ export default class GooglePlacesAutocomplete extends Component {
 
             if (!this.props.onNotFound) {
               console.warn('google places autocomplete: ' + responseJSON.status);
+              this.setState({ error: true, error_message: 'Error getting location data - please try again.' })
             } else {
               this.props.onNotFound(responseJSON);
             }
@@ -273,6 +298,7 @@ export default class GooglePlacesAutocomplete extends Component {
             console.warn(
               'google places autocomplete: request could not be completed or has been aborted'
             );
+            this.setState({ error: true, error_message: 'Error getting location data - please try again.' })
           } else {
             this.props.onFail();
           }
@@ -378,6 +404,10 @@ export default class GooglePlacesAutocomplete extends Component {
     return results;
   }
 
+  onTimeout = () => {
+    this.setState({ error: true, error_message: 'Request timeout - please try again.' })
+  }
+
   _requestNearby = (latitude, longitude) => {
     this._abortRequests();
 
@@ -385,7 +415,7 @@ export default class GooglePlacesAutocomplete extends Component {
       const request = new XMLHttpRequest();
       this._requests.push(request);
       request.timeout = this.props.timeout;
-      request.ontimeout = this.props.onTimeout;
+      request.ontimeout = this.onTimeout;
       request.onreadystatechange = () => {
         if (request.readyState !== 4) {
           return;
@@ -448,13 +478,17 @@ export default class GooglePlacesAutocomplete extends Component {
     }
   }
 
+  renderError = () => {
+
+  }
+
   _request = (text) => {
     this._abortRequests();
     if (text.length >= this.props.minLength) {
       const request = new XMLHttpRequest();
       this._requests.push(request);
       request.timeout = this.props.timeout;
-      request.ontimeout = this.props.onTimeout;
+      request.ontimeout = this.onTimeout;
       request.onreadystatechange = () => {
         if (request.readyState !== 4) {
           return;
@@ -469,16 +503,28 @@ export default class GooglePlacesAutocomplete extends Component {
                 : responseJSON.predictions;
 
               this._results = results;
-              this.setState({
-                dataSource: this.buildRowsFromResults(results),
-              });
+              if (!results || !results.length) {
+                this.setState({
+                  error: true,
+                  error_message: 'No results found.',
+                  dataSource: this.buildRowsFromResults([])
+                })
+              } else {
+                this.setState({
+                  dataSource: this.buildRowsFromResults(results),
+                  error: false
+                });
+              }
             }
           }
           if (typeof responseJSON.error_message !== 'undefined') {
             console.warn('google places autocomplete: ' + responseJSON.error_message);
+            this.setState({ error: true, error_message: responseJSON.error_message })
           }
         } else {
+          console.warn('request aborted thing....')
           // console.warn("google places autocomplete: request could not be completed or has been aborted");
+          this.setState({ error: true, error_message: 'A network error occurred - please try your request again.' })
         }
       };
       request.open('GET', 'https://maps.googleapis.com/maps/api/place/autocomplete/json?&input=' + encodeURIComponent(text) + '&' + Qs.stringify(this.props.query));
@@ -488,9 +534,11 @@ export default class GooglePlacesAutocomplete extends Component {
 
       request.send();
     } else {
+      console.log('argoooooooo.......')
       this._results = [];
       this.setState({
         dataSource: this.buildRowsFromResults([]),
+        error: true
       });
     }
   }
@@ -500,6 +548,8 @@ export default class GooglePlacesAutocomplete extends Component {
 
     this.setState({
       text: text,
+      error: text ? false : this.state.error,
+      error_message: text ? '' : this.state.error_message,
       listViewDisplayed: this._isMounted || this.props.autoFocus,
     });
   }
@@ -629,6 +679,7 @@ export default class GooglePlacesAutocomplete extends Component {
           keyExtractor={keyGenerator}
           extraData={[this.state.dataSource, this.props]}
           ItemSeparatorComponent={this._renderSeparator}
+          inverted={true}
           renderItem={({ item }) => this._renderRow(item)}
           {...this.props}
         />
@@ -637,6 +688,8 @@ export default class GooglePlacesAutocomplete extends Component {
 
     return null;
   }
+
+
   render() {
     let {
       onFocus,
@@ -673,6 +726,13 @@ export default class GooglePlacesAutocomplete extends Component {
         }
         {this._getFlatList()}
         {this.props.children}
+        {this.state.error ?
+            <TouchableOpacity style={defaultStyles.errorStyles} onPress={() => this.setState({ error: false, error_message: '' })}>
+              <Text style={defaultStyles.close}>X</Text>
+              <Text style={defaultStyles.errorMessage}>{this.state.error_message ? this.state.error_message : 'Error fetching results - please check your internet connection.'}</Text>
+
+            </TouchableOpacity> : null
+        }
       </View>
     );
   }
@@ -736,8 +796,8 @@ GooglePlacesAutocomplete.defaultProps = {
   autoFillOnNotFound: false,
   keyboardShouldPersistTaps: 'always',
   getDefaultValue: () => '',
-  timeout: 20000,
-  onTimeout: () => console.warn('google places autocomplete: request timeout'),
+  timeout: 7000,
+  onTimeout: () => {},
   query: {
     key: 'missing api key',
     language: 'en',
