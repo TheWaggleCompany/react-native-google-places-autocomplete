@@ -717,19 +717,11 @@ export default class GooglePlacesAutocomplete extends Component {
         this.props.currentLocation === true) &&
       this.state.listViewDisplayed === true
     ) {
-      console.log(this.state.dataSource);
-      const customTop = {};
-      if (this.state.dataSource.length < 5) {
-        const scaleFactor = 5 - this.state.dataSource.length;
-        customTop.top = -220 + scaleFactor * 45;
-      }
-
       return (
         <FlatList
           style={[
             this.props.suppressDefaultStyles ? {} : defaultStyles.listView,
-            this.props.styles.listView,
-            customTop
+            this.props.styles.listView
           ]}
           data={this.state.dataSource}
           keyExtractor={keyGenerator}
