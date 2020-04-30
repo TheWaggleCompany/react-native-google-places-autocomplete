@@ -21,7 +21,7 @@ const WINDOW = Dimensions.get("window");
 
 const defaultStyles = {
   container: {
-    flex: 1
+    // flex: 1
   },
   textInputContainer: {
     backgroundColor: "#C9C9CE",
@@ -278,7 +278,8 @@ export default class GooglePlacesAutocomplete extends Component {
               this._onBlur();
 
               this.setState({
-                text: this._renderDescription(rowData)
+                text: this._renderDescription(rowData),
+                listViewDisplayed: false
               });
 
               delete rowData.isLoading;
@@ -289,7 +290,8 @@ export default class GooglePlacesAutocomplete extends Component {
 
             if (this.props.autoFillOnNotFound) {
               this.setState({
-                text: this._renderDescription(rowData)
+                text: this._renderDescription(rowData),
+                listViewDisplayed: false
               });
               delete rowData.isLoading;
             }
@@ -837,7 +839,6 @@ GooglePlacesAutocomplete.propTypes = {
   onEmptyListPress: PropTypes.func
 };
 GooglePlacesAutocomplete.defaultProps = {
-  placeholder: "Search",
   placeholderTextColor: "#A8A8A8",
   isRowScrollable: true,
   underlineColorAndroid: "transparent",
