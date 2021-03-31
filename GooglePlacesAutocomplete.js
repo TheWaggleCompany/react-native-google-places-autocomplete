@@ -131,7 +131,7 @@ export default class GooglePlacesAutocomplete extends Component {
       });
     }
 
-    return [...res, ...results].reverse();
+    return [...res, ...results];
   };
 
   componentWillMount() {
@@ -902,3 +902,4 @@ module.exports = {
   GooglePlacesAutocomplete,
   create
 };
+p;
