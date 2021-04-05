@@ -119,19 +119,20 @@ export default class GooglePlacesAutocomplete extends Component {
     }));
 
     //this will add a default label if nothing is found
+    let emptyList = []
     if (
-      results.length === 0 &&
       this.state &&
       this.state.text.length >= this.props.minLength &&
       this.props.emptyListLabel
     ) {
-      res.unshift({
+      emptyList.push({
         description: this.props.emptyListLabel,
         isEmptyListLabel: true
       });
+
     }
 
-    return [...res, ...results];
+    return [...res, ...results, ...emptyList];
   };
 
   componentWillMount() {
